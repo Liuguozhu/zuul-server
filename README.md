@@ -2,7 +2,7 @@
 微服务之路由
 zuul server demo
 
-## 技术栈(Technology stack)
+## 技术栈 (Technology stack)
 - Spring-Boot
 - Spring-Cloud
 - Eureka
