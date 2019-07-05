@@ -22,6 +22,7 @@ zuul:
     upstair:
       path: /upstair/**      #(针对微服务名称的)访问路径
       serviceId: upstair         #微服务名称
+      sensitiveHeaders: "*"   #解决session不一致的问题，如果接口中有session验证，加上这个，否则无需添加。
     lobby-api:
       path: /lobby-api/**      #(针对微服务名称的)访问路径
       serviceId: lobby-api         #微服务名称
