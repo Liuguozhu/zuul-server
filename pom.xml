@@ -15,6 +15,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
         <eureka.version>2.1.1.RELEASE</eureka.version>
+        <guava.version>27.0-jre</guava.version>
     </properties>
 
     <parent>
@@ -49,6 +50,88 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-freemarker</artifactId>
         </dependency>
+
+        <!--guava start-->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+        <!--guava end-->
     </dependencies>
 
+    <build>
+        <finalName>zuul-server</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                </includes>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+
+        <plugins>
+            <!--springboot插件
+            <plugin>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>-->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <!-- 如果是true 在打出来的包/路径上面会增加这个Assembly的id显示-->
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <descriptors>
+                        <!-- assembly描述文件位置 -->
+                        <descriptor>src/main/resources/assembly.xml</descriptor>
+                    </descriptors>
+                    <!-- 打包完成后文件输出位置 这里为target目录-->
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- 主要用来打包主jar-->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <!--启动文件入口类,就是springboot启动main方法所在类 -->
+                            <mainClass>com.ophyer.zuul.ZuulServerApplication</mainClass>
+                            <!-- 主jar依赖的jar包路径-->
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                    <!-- 不把配置文件和html文件打进主jar内-->
+                    <excludes>
+                        <exclude>*.java</exclude>
+                        <exclude>static/</exclude>
+                        <exclude>db/</exclude>
+                        <exclude>templates/</exclude>
+                        <exclude>*.yml</exclude>
+                        <exclude>*.txt</exclude>
+                        <exclude>logback.xml</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- 打包发布时，跳过单元测试 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
 </project>
