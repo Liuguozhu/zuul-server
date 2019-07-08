@@ -21,5 +21,5 @@ zuul server demo
 mvn clean assembly:assembly
 ```
 
-打包完成后，会在项目根目录下的target目录里生成一个`*.tar.gz`文件，解压运行 `sh start.sh` 即可启动论坛服务
+打包完成后，会在项目根目录下的target目录里生成一个`zuul-server.tar.gz`文件，解压运行 `sh start.sh` 即可启动服务
 
