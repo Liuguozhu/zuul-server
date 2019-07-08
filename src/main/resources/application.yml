@@ -1,5 +1,5 @@
 server:
-  port: 2240
+  port: 2230
 spring:
   # 应用名称
   application:
