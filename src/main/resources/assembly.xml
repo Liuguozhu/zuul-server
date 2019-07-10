@@ -33,8 +33,8 @@
         <exclude>.factorypath</exclude>
         <exclude>.project</exclude>
         <exclude>application.pid</exclude>
-        <exclude>pybbs.iml</exclude>
-        <exclude>pybbs.pid</exclude>
+        <exclude>*.iml</exclude>
+        <exclude>*.pid</exclude>
         <exclude>.settings/**</exclude>
         <exclude>Dockerfile</exclude>
         <exclude>docker-compose.yml</exclude>

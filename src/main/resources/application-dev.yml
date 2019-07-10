@@ -1,3 +1,7 @@
+spring:
+  banner:
+    location: file:./banner.txt
+
 eureka:
   instance:
     instance-id: ${spring.cloud.client.ipAddress}:${spring.application.name}:${spring.application.instance_id:${server.port}}    # 这个配置所有eureka client中必须一样！要么都不配，要么是同样的 instance-id ！否则，通过 routes 无法找到，也就不能访问
