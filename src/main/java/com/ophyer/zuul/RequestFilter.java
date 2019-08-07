@@ -87,9 +87,8 @@ public class RequestFilter extends ZuulFilter {
             ctx.setResponseStatusCode(403);
             ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
             return null;
-        } else {
-            logger.info("验证通过，解析后转发");
         }
+        logger.info("验证通过，解析后转发");
 
         // 获取请求的输入流
         InputStream in;
@@ -97,7 +96,10 @@ public class RequestFilter extends ZuulFilter {
             in = request.getInputStream();
         } catch (IOException e) {
             logger.error("解析请求流错误：{}", e.getMessage());
-            e.printStackTrace();
+//            e.printStackTrace();
+            ctx.setSendZuulResponse(false);
+            ctx.setResponseStatusCode(403);
+            ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
             return null;//请求不合法
         }
         String body;
@@ -105,7 +107,10 @@ public class RequestFilter extends ZuulFilter {
             body = StreamUtils.copyToString(in, Charset.forName("UTF-8"));
         } catch (IOException e) {
             logger.error("请求流转字符串错误：{}", e.getMessage());
-            e.printStackTrace();
+//            e.printStackTrace();
+            ctx.setSendZuulResponse(false);
+            ctx.setResponseStatusCode(403);
+            ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
             return null;//请求不合法
         }
         // 如果body为空初始化为空json
@@ -139,30 +144,26 @@ public class RequestFilter extends ZuulFilter {
     }
 
     private void executeGet(RequestContext ctx, HttpServletRequest request, String offset) {
-
-            // 关键步骤，一定要get一下,下面才能取到值requestQueryParams
-            request.getParameterMap();
-            Map<String, List<String>> requestQueryParams = ctx.getRequestQueryParams();
-            if (requestQueryParams == null) {
-                requestQueryParams = new HashMap<>();
-            }
-            Map<String, List<String>> finalRequestQueryParams = requestQueryParams;
-            requestQueryParams.forEach((k, v) -> {
-                List<String> arrayList = new ArrayList<>();
-                v.forEach(s -> {
-                    String aes_decodedStr = AESUtil.decrypt(v.get(0), Constants.KEY, offset);
-                    arrayList.add(aes_decodedStr);
-                });
-                finalRequestQueryParams.put(k, arrayList);
+        // 关键步骤，一定要get一下,下面才能取到值requestQueryParams
+        request.getParameterMap();
+        Map<String, List<String>> requestQueryParams = ctx.getRequestQueryParams();
+        if (requestQueryParams == null) {
+            requestQueryParams = new HashMap<>();
+        }
+        Map<String, List<String>> finalRequestQueryParams = requestQueryParams;
+        requestQueryParams.forEach((k, v) -> {
+            List<String> arrayList = new ArrayList<>();
+            v.forEach(s -> {
+                String aes_decodedStr = AESUtil.decrypt(v.get(0), Constants.KEY, offset);
+                arrayList.add(aes_decodedStr);
             });
-//            arrayList.add(aes_decodedStr + "");
-//            requestQueryParams.put("decodename", arrayList);
-            ctx.setRequestQueryParams(requestQueryParams);
+            finalRequestQueryParams.put(k, arrayList);
+        });
+        ctx.setRequestQueryParams(requestQueryParams);
 
-            Gson gson = new Gson();
-            String body = gson.toJson(requestQueryParams);
-            logger.info("请求参数{}", body);
-
+        Gson gson = new Gson();
+        String body = gson.toJson(requestQueryParams);
+        logger.info("解密后请求参数{}", body);
     }
 
     private void executePost(RequestContext ctx, HttpServletRequest request, String body, String offset) {

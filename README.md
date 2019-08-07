@@ -23,3 +23,7 @@ mvn clean assembly:assembly
 
 打包完成后，会在项目根目录下的target目录里生成一个`zuul-server.tar.gz`文件，解压运行 `sh start.sh` 即可启动服务
 
+## 网关请求拦截和数据加密解密
+- 请求头部验证 请求序列号，解密需要的偏移量，key
+- 请求数据解密 AES算法 key+偏移量
+- 响应数据加密 AES算法 key+偏移量
