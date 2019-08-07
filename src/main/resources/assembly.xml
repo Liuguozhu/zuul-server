@@ -35,11 +35,12 @@
         <exclude>application.pid</exclude>
         <exclude>*.iml</exclude>
         <exclude>*.pid</exclude>
+        <exclude>readme.md</exclude>
+        <exclude>README.md</exclude>
         <exclude>.settings/**</exclude>
         <exclude>Dockerfile</exclude>
         <exclude>docker-compose.yml</exclude>
         <exclude>application-docker.yml</exclude>
-        <exclude>application-dev.yml</exclude>
       </excludes>
     </fileSet>
     <!-- 把项目的配置文件，打包进zip文件的根目录 -->
