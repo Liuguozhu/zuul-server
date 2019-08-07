@@ -94,13 +94,12 @@ public class ResponseFilter extends ZuulFilter {
         logger.info("响应body={}", body);
 
         if (StringUtils.isNotBlank(body)) {
-            Gson gson = new Gson();
-            @SuppressWarnings("unchecked")
-            Map<String, String> result = gson.fromJson(body, Map.class);
-            logger.info("响应resultMap={}", result);
-            body = gson.toJson(result);
+//            Gson gson = new Gson();
+//            @SuppressWarnings("unchecked")
+//            Map<String, String> result = gson.fromJson(body, Map.class);
+//            logger.info("响应resultMap={}", result);
+//            body = gson.toJson(result);
             body = AESUtil.encrypt(body, Constants.KEY, offset);
-
         }
         context.setResponseBody(body);
 
