@@ -149,9 +149,11 @@ public class AESUtil {
 
         String iv = "ymzrgrk6wr0s2fwr";
         iv = Base64.encode(iv.getBytes(StandardCharsets.UTF_8));
+        logger.info("data:{}",originalData);
+        logger.info("offset:{}",iv);
         String encryptedData = AESUtil.encrypt(originalData, Constants.KEY, iv);
-        System.out.println(encryptedData);
+        logger.info(encryptedData);
         String body = AESUtil.decrypt(encryptedData, Constants.KEY, iv);
-        System.out.println(body);
+        logger.info(body);
     }
 }

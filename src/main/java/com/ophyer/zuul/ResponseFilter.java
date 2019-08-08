@@ -1,13 +1,9 @@
 package com.ophyer.zuul;
 
-import com.google.gson.Gson;
 import com.netflix.zuul.ZuulFilter;
 import com.netflix.zuul.context.RequestContext;
 import com.netflix.zuul.exception.ZuulException;
-import com.ophyer.zuul.common.AESUtil;
-import com.ophyer.zuul.common.Constants;
-import com.ophyer.zuul.common.MD5Util;
-import com.ophyer.zuul.common.StringUtil;
+import com.ophyer.zuul.common.*;
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -22,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 import static com.netflix.zuul.context.RequestContext.getCurrentContext;
 
@@ -77,14 +72,18 @@ public class ResponseFilter extends ZuulFilter {
         InputStream stream = context.getResponseDataStream();
         HttpServletRequest request = context.getRequest();
         HttpServletResponse response = context.getResponse();
+        String actionName = request.getRequestURI();
+        String clientIp = IpUtil.getIpAddr(request);
+        logger.info("response|{}|{}", clientIp, actionName);
         String offset = StringUtil.randomString(16);
         offset = Base64.encode(offset.getBytes(StandardCharsets.UTF_8));//偏移量用base64编码
-        logger.info("随机偏移量={}", offset);
-        String serial = request.getHeader(Constants.HEADER_SERIAL);//请求id，长度为32位
+        String serial = RequestFilter.getHeaderParam(request, Constants.HEADER_SERIAL);//请求id，长度为32位
         String cipherText = MD5Util.getMD5String(serial + Constants.KEY + offset);
         response.addHeader(Constants.HEADER_OFFSET, offset);
         response.addHeader(Constants.HEADER_SERIAL, serial);
         response.addHeader(Constants.HEADER_CIPHER, cipherText);
+        // FIXME 特别注意 同域请求无需加，跨域请求需要加上下面这行，允许客户端从跨域请求的响应头中获取这些信息,如果想要所有都允许，换成* ，否则客户端获取响应头部信息时会报错 Refused to get unsafe header “xxx”
+        response.addHeader("Access-Control-Expose-Headers", Constants.HEADER_OFFSET+","+Constants.HEADER_SERIAL+","+Constants.HEADER_CIPHER);
         String body = null;
         try {
             body = StreamUtils.copyToString(stream, Charset.forName("UTF-8"));
@@ -94,11 +93,6 @@ public class ResponseFilter extends ZuulFilter {
         logger.info("响应body={}", body);
 
         if (StringUtils.isNotBlank(body)) {
-//            Gson gson = new Gson();
-//            @SuppressWarnings("unchecked")
-//            Map<String, String> result = gson.fromJson(body, Map.class);
-//            logger.info("响应resultMap={}", result);
-//            body = gson.toJson(result);
             body = AESUtil.encrypt(body, Constants.KEY, offset);
         }
         context.setResponseBody(body);

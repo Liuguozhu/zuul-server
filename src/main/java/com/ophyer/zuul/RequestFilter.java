@@ -8,8 +8,10 @@ import com.netflix.zuul.http.HttpServletRequestWrapper;
 import com.netflix.zuul.http.ServletInputStreamWrapper;
 import com.ophyer.zuul.common.AESUtil;
 import com.ophyer.zuul.common.Constants;
+import com.ophyer.zuul.common.IpUtil;
 import com.ophyer.zuul.common.MD5Util;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
@@ -18,6 +20,7 @@ import org.springframework.util.StreamUtils;
 
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -76,53 +79,64 @@ public class RequestFilter extends ZuulFilter {
         // 获取到request
         RequestContext ctx = RequestContext.getCurrentContext();
         HttpServletRequest request = ctx.getRequest();
+        HttpServletResponse response = ctx.getResponse();
         // 请求方法
         String method = request.getMethod();
+        String actionName = request.getRequestURI();
+        String clientIp = IpUtil.getIpAddr(request);
+        logger.info("request|{}|{}", clientIp, actionName);
+
+        //判断是否是预检请求
+        if ("OPTIONS".equals(request.getMethod())) {//这里通过判断请求的方法，判断此次是否是预检请求，如果是，立即返回一个204状态吗，标示，允许跨域；预检后，正式请求，这个方法参数就是我们设置的post了
+            logger.info("预检请求***");
+            ctx.setSendZuulResponse(true);
+            return null;
+        }
 
         // 验证请求头
         boolean verifyHeader = verifyHeader(request);
         if (!verifyHeader) {
             logger.info("请求头部错误，拒绝转发！");
             ctx.setSendZuulResponse(false);
-            ctx.setResponseStatusCode(403);
+            ctx.setResponseStatusCode(HttpStatus.SC_FORBIDDEN);
             ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
             return null;
         }
         logger.info("验证通过，解析后转发");
 
-        // 获取请求的输入流
-        InputStream in;
-        try {
-            in = request.getInputStream();
-        } catch (IOException e) {
-            logger.error("解析请求流错误：{}", e.getMessage());
-//            e.printStackTrace();
-            ctx.setSendZuulResponse(false);
-            ctx.setResponseStatusCode(403);
-            ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
-            return null;//请求不合法
-        }
-        String body;
-        try {
-            body = StreamUtils.copyToString(in, Charset.forName("UTF-8"));
-        } catch (IOException e) {
-            logger.error("请求流转字符串错误：{}", e.getMessage());
-//            e.printStackTrace();
-            ctx.setSendZuulResponse(false);
-            ctx.setResponseStatusCode(403);
-            ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
-            return null;//请求不合法
-        }
-        // 如果body为空初始化为空json
-        if (StringUtils.isBlank(body)) {
-            body = "{}";
-        }
-        logger.info("请求body={}", body);
-        String offset = request.getHeader(Constants.HEADER_OFFSET);//解密body用的偏移量，长度为16位字符串
+        String offset = getHeaderParam(request, Constants.HEADER_OFFSET);//解密body用的偏移量，长度为16位字符串
+        logger.info("请求方式={}", method);
         // get方法和post、put方法处理方式不同
         if ("GET".equals(method)) {
             executeGet(ctx, request, offset);
         } else if ("POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method)) {
+            // 获取请求的输入流
+            InputStream in;
+            try {
+                in = request.getInputStream();
+            } catch (IOException e) {
+                logger.error("解析请求流错误：{}", e.getMessage());
+                ctx.setSendZuulResponse(false);
+                ctx.setResponseStatusCode(500);
+                ctx.setResponseBody("{\"code\":500,\"result\":\"" + e.getMessage() + "\"}");
+                return null;//请求不合法
+            }
+            String body;
+            try {
+                body = StreamUtils.copyToString(in, Charset.forName("UTF-8"));
+            } catch (IOException e) {
+                logger.error("请求流转字符串错误：{}", e.getMessage());
+                ctx.setSendZuulResponse(false);
+                ctx.setResponseStatusCode(500);
+                ctx.setResponseBody("{\"code\":500,\"result\":\"" + e.getMessage() + "\"}");
+                return null;//请求不合法
+            }
+            // 如果body为空初始化为空json
+//            if (StringUtils.isBlank(body)) {
+//                body = "{}";
+//            }
+            logger.info("请求body={}", body);
+
             executePost(ctx, request, body, offset);
         }
         return null;//请求合法
@@ -131,9 +145,12 @@ public class RequestFilter extends ZuulFilter {
     // 验证请求头，false，验证不通过；true验证通过
     // 签名规则：md5(serial+秘钥+偏移量)
     private boolean verifyHeader(HttpServletRequest request) {
-        String serial = request.getHeader(Constants.HEADER_SERIAL);//每次请求都随机生成一个序列号作为请求id，长度为32位
-        String offset = request.getHeader(Constants.HEADER_OFFSET);//解密body用的偏移量，长度为16位字符串
-        String cipherText = request.getHeader(Constants.HEADER_CIPHER);//头签名
+        String serial = getHeaderParam(request, Constants.HEADER_SERIAL);//每次请求都随机生成一个序列号作为请求id，长度为32位
+        String offset = getHeaderParam(request, Constants.HEADER_OFFSET);//解密body用的偏移量，长度为16位字符串
+        String cipherText = getHeaderParam(request, Constants.HEADER_CIPHER);//头签名
+        logger.info(Constants.HEADER_SERIAL + ":{}", serial);
+        logger.info(Constants.HEADER_OFFSET + ":{}", offset);
+        logger.info(Constants.HEADER_CIPHER + ":{}", cipherText);
         if (StringUtils.isEmpty(serial) || StringUtils.isEmpty(cipherText) || StringUtils.isEmpty(offset))
             return false;
         // 验证签名
@@ -142,6 +159,16 @@ public class RequestFilter extends ZuulFilter {
         logger.info("生成签名{}", sign);
         return cipherText.equals(sign);
     }
+
+    static String getHeaderParam(HttpServletRequest request, String name) {
+        String value = request.getHeader(name);
+        if (StringUtils.isEmpty(value)) {
+            logger.info("header里没获取到{}，从参数中获取.", name);
+            value = request.getParameter(name);
+        }
+        return value;
+    }
+
 
     private void executeGet(RequestContext ctx, HttpServletRequest request, String offset) {
         // 关键步骤，一定要get一下,下面才能取到值requestQueryParams
@@ -167,6 +194,9 @@ public class RequestFilter extends ZuulFilter {
     }
 
     private void executePost(RequestContext ctx, HttpServletRequest request, String body, String offset) {
+        if (StringUtils.isBlank(body)) {
+            return;
+        }
         String newBody = AESUtil.decrypt(body, Constants.KEY, offset);
         final byte[] reqBodyBytes = newBody.getBytes();
 
