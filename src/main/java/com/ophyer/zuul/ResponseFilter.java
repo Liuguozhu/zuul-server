@@ -12,12 +12,17 @@ import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.spec.InvalidParameterSpecException;
 
 import static com.netflix.zuul.context.RequestContext.getCurrentContext;
 
@@ -83,17 +88,30 @@ public class ResponseFilter extends ZuulFilter {
         response.addHeader(Constants.HEADER_SERIAL, serial);
         response.addHeader(Constants.HEADER_CIPHER, cipherText);
         // FIXME 特别注意 同域请求无需加，跨域请求需要加上下面这行，允许客户端从跨域请求的响应头中获取这些信息,如果想要所有都允许，换成* ，否则客户端获取响应头部信息时会报错 Refused to get unsafe header “xxx”
-        response.addHeader("Access-Control-Expose-Headers", Constants.HEADER_OFFSET+","+Constants.HEADER_SERIAL+","+Constants.HEADER_CIPHER);
-        String body = null;
+        response.addHeader("Access-Control-Expose-Headers", Constants.HEADER_OFFSET + "," + Constants.HEADER_SERIAL + "," + Constants.HEADER_CIPHER);
+        response.addHeader("Access-Control-Max-Age", "3600");
+        String body;
         try {
             body = StreamUtils.copyToString(stream, Charset.forName("UTF-8"));
         } catch (IOException e) {
+            logger.error("Response body 获取错误：{}", e.getMessage());
             e.printStackTrace();
+            context.setSendZuulResponse(false);
+            context.setResponseStatusCode(500);
+            context.setResponseBody("{\"code\":500,\"result\":\"" + e.getMessage() + "\"}");
+            return null;
         }
         logger.info("响应body={}", body);
 
         if (StringUtils.isNotBlank(body)) {
-            body = AESUtil.encrypt(body, Constants.KEY, offset);
+            try {
+                body = AESUtil.encrypt(body, Constants.KEY, offset);
+            } catch (GeneralSecurityException e) {
+                e.printStackTrace();
+                context.setSendZuulResponse(false);
+                context.setResponseStatusCode(500);
+                context.setResponseBody("{\"code\":500,\"result\":\"返回结果加密错误！\"}");
+            }
         }
         context.setResponseBody(body);
 

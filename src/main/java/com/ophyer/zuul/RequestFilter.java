@@ -18,12 +18,18 @@ import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.security.*;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -137,7 +143,16 @@ public class RequestFilter extends ZuulFilter {
 //            }
             logger.info("请求body={}", body);
 
-            executePost(ctx, request, body, offset);
+            try {
+                executePost(ctx, request, body, offset);
+            } catch (GeneralSecurityException | UnsupportedEncodingException e) {
+                e.printStackTrace();
+                logger.error("POST body 解密错误：{}", e.getMessage());
+                ctx.setSendZuulResponse(false);
+                ctx.setResponseStatusCode(500);
+                ctx.setResponseBody("{\"code\":500,\"result\":\"" + e.getMessage() + "\"}");
+                return null;//请求不合法
+            }
         }
         return null;//请求合法
     }
@@ -181,7 +196,17 @@ public class RequestFilter extends ZuulFilter {
         requestQueryParams.forEach((k, v) -> {
             List<String> arrayList = new ArrayList<>();
             v.forEach(s -> {
-                String aes_decodedStr = AESUtil.decrypt(v.get(0), Constants.KEY, offset);
+                String aes_decodedStr = null;
+                try {
+                    aes_decodedStr = AESUtil.decrypt(s, Constants.KEY, offset);
+                } catch (GeneralSecurityException | UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                    logger.error("GET 请求解密错误：{}", e.getMessage());
+                    ctx.setSendZuulResponse(false);
+                    ctx.setResponseStatusCode(500);
+                    ctx.setResponseBody("{\"code\":500,\"result\":\"" + e.getMessage() + "\"}");
+                    return;
+                }
                 arrayList.add(aes_decodedStr);
             });
             finalRequestQueryParams.put(k, arrayList);
@@ -193,7 +218,7 @@ public class RequestFilter extends ZuulFilter {
         logger.info("解密后请求参数{}", body);
     }
 
-    private void executePost(RequestContext ctx, HttpServletRequest request, String body, String offset) {
+    private void executePost(RequestContext ctx, HttpServletRequest request, String body, String offset) throws GeneralSecurityException, UnsupportedEncodingException {
         if (StringUtils.isBlank(body)) {
             return;
         }

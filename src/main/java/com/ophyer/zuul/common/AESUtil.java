@@ -45,7 +45,7 @@ public class AESUtil {
      * @param offset        偏移量
      * @return 解密后字符串
      */
-    public static String decrypt(String encryptedData, String key, String offset) {
+    public static String decrypt(String encryptedData, String key, String offset) throws GeneralSecurityException, UnsupportedEncodingException {
         //被加密的数据
         byte[] dataByte = Base64.decode(encryptedData);
         //加密秘钥
@@ -53,28 +53,23 @@ public class AESUtil {
         //偏移量
         byte[] ivByte = Base64.decode(offset);
 
-        try {
-            //方法一
+        //方法一
 //            Cipher e = Cipher.getInstance(TRANSFORM_CBC_PKCS5);
 //            SecretKeySpec spec = new SecretKeySpec(keyByte, ALGORITHM);
 //            IvParameterSpec iv = new IvParameterSpec(ivByte);//使用CBC模式，需要一个向量iv，可增加加密算法的强度
 //            e.init(Cipher.DECRYPT_MODE, spec, iv);
 //            byte[] resultByte = e.doFinal(dataByte);
 
-            //方法二
-            Security.addProvider(new BouncyCastleProvider());
-            Cipher e = Cipher.getInstance(TRANSFORM_CBC_PKCS7, PROVIDER);
-            SecretKeySpec spec = new SecretKeySpec(keyByte, ALGORITHM);
-            AlgorithmParameters parameters = AlgorithmParameters.getInstance(ALGORITHM);
-            parameters.init(new IvParameterSpec(ivByte));
-            e.init(Cipher.DECRYPT_MODE, spec, parameters);// 初始化
-            byte[] resultByte = e.doFinal(dataByte);
-            if (null != resultByte && resultByte.length > 0) {
-                return new String(resultByte, StandardCharsets.UTF_8.displayName());
-            }
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | NoSuchProviderException | InvalidParameterSpecException e) {
-            logger.error(e.getMessage());
-//            e.printStackTrace();
+        //方法二
+        Security.addProvider(new BouncyCastleProvider());
+        Cipher e = Cipher.getInstance(TRANSFORM_CBC_PKCS7, PROVIDER);
+        SecretKeySpec spec = new SecretKeySpec(keyByte, ALGORITHM);
+        AlgorithmParameters parameters = AlgorithmParameters.getInstance(ALGORITHM);
+        parameters.init(new IvParameterSpec(ivByte));
+        e.init(Cipher.DECRYPT_MODE, spec, parameters);// 初始化
+        byte[] resultByte = e.doFinal(dataByte);
+        if (null != resultByte && resultByte.length > 0) {
+            return new String(resultByte, StandardCharsets.UTF_8.displayName());
         }
         return "";
     }
@@ -87,35 +82,30 @@ public class AESUtil {
      * @param offset       偏移量
      * @return 加密后字符串
      */
-    public static String encrypt(String originalData, String key, String offset) {
+    public static String encrypt(String originalData, String key, String offset) throws GeneralSecurityException {
         //等待加密的数据
         byte[] dataByte = originalData.getBytes();
         //加密秘钥
         byte[] keyByte = Base64.decode(key);
         //偏移量
         byte[] ivByte = Base64.decode(offset);
-        try {
-            //方法一
+        //方法一
 //            Cipher e = Cipher.getInstance(TRANSFORM_CBC_PKCS5);
 //            SecretKeySpec spec = new SecretKeySpec(keyByte, ALGORITHM);
 //            IvParameterSpec iv = new IvParameterSpec(ivByte);//使用CBC模式，需要一个向量iv，可增加加密算法的强度
 //            e.init(Cipher.ENCRYPT_MODE, spec, iv);
 //            byte[] resultByte = e.doFinal(dataByte);
 
-            //方法二
-            Security.addProvider(new BouncyCastleProvider());
-            Cipher e = Cipher.getInstance(TRANSFORM_CBC_PKCS7, PROVIDER);
-            SecretKeySpec spec = new SecretKeySpec(keyByte, ALGORITHM);
-            AlgorithmParameters parameters = AlgorithmParameters.getInstance(ALGORITHM);
-            parameters.init(new IvParameterSpec(ivByte));
-            e.init(Cipher.ENCRYPT_MODE, spec, parameters);// 初始化
-            byte[] resultByte = e.doFinal(dataByte);
-            if (null != resultByte && resultByte.length > 0) {
-                return Base64.encode(resultByte);
-            }
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | NoSuchProviderException | InvalidParameterSpecException | IllegalBlockSizeException | BadPaddingException e) {
-            logger.error(e.getMessage());
-//            e.printStackTrace();
+        //方法二
+        Security.addProvider(new BouncyCastleProvider());
+        Cipher e = Cipher.getInstance(TRANSFORM_CBC_PKCS7, PROVIDER);
+        SecretKeySpec spec = new SecretKeySpec(keyByte, ALGORITHM);
+        AlgorithmParameters parameters = AlgorithmParameters.getInstance(ALGORITHM);
+        parameters.init(new IvParameterSpec(ivByte));
+        e.init(Cipher.ENCRYPT_MODE, spec, parameters);// 初始化
+        byte[] resultByte = e.doFinal(dataByte);
+        if (null != resultByte && resultByte.length > 0) {
+            return Base64.encode(resultByte);
         }
         return null;
     }
@@ -149,8 +139,8 @@ public class AESUtil {
 
         String iv = "ymzrgrk6wr0s2fwr";
         iv = Base64.encode(iv.getBytes(StandardCharsets.UTF_8));
-        logger.info("data:{}",originalData);
-        logger.info("offset:{}",iv);
+        logger.info("data:{}", originalData);
+        logger.info("offset:{}", iv);
         String encryptedData = AESUtil.encrypt(originalData, Constants.KEY, iv);
         logger.info(encryptedData);
         String body = AESUtil.decrypt(encryptedData, Constants.KEY, iv);
