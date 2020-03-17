@@ -5,13 +5,17 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.*;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.security.spec.InvalidParameterSpecException;
+import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
+import java.security.Security;
 
 /**
  * @author LGZ
@@ -117,7 +121,7 @@ public class AESUtil {
      * @return
      * @throws Exception
      */
-    public static String generateDesKey(int length) throws Exception {
+    public static byte[] generateDesKey(int length) throws Exception {
         //实例化
         KeyGenerator kgen;
         kgen = KeyGenerator.getInstance("AES");
@@ -127,23 +131,33 @@ public class AESUtil {
         SecretKey secretKey = kgen.generateKey();
 
         //获取密钥的二进制编码
-        byte[] keyByte = secretKey.getEncoded();
-        return Base64.encode(keyByte);//用base64编码秘钥
+        return secretKey.getEncoded();//Base64.encode(keyByte);//用base64编码秘钥
     }
 
     public static void main(String[] args) throws Exception {
-//        byte[] keyByte = generateDesKey(128);
-//        String key = Base64.encode(keyByte);
-//        System.out.println(key);
+        byte[] keyByte = generateDesKey(128);
+        String key = Base64.encode(keyByte);
+        logger.info("key base64={}", key);
+//        String key = StringUtil.randomString(16);
+//        logger.info("key={}", key);
+//        String keyEncode = Base64.encode(key.getBytes());
+//        logger.info("keyEncode={}", keyEncode);
+
         String originalData = "{\"a\":100,\"b\":\"str\"}";
 
         String iv = "ymzrgrk6wr0s2fwr";
         iv = Base64.encode(iv.getBytes(StandardCharsets.UTF_8));
         logger.info("data:{}", originalData);
         logger.info("offset:{}", iv);
-        String encryptedData = AESUtil.encrypt(originalData, Constants.KEY, iv);
+
+        logger.info("offset decode:{}", Base64.decode(iv));
+        String encryptedData = AESUtil.encrypt(originalData, key, iv);
         logger.info(encryptedData);
-        String body = AESUtil.decrypt(encryptedData, Constants.KEY, iv);
+        String body = AESUtil.decrypt(encryptedData, key, iv);
         logger.info(body);
+
+        String a = "gdT9s/M9RaOP+vciKbaS/A==";
+        String r = URLEncoder.encode(a, "utf-8");
+        logger.info(r);
     }
 }

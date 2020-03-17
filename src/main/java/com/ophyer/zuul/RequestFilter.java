@@ -18,9 +18,6 @@ import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -28,8 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.security.*;
-import java.security.spec.InvalidParameterSpecException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -77,7 +73,7 @@ public class RequestFilter extends ZuulFilter {
      */
     @Override
     public boolean shouldFilter() {
-        return true;
+        return false;
     }
 
     @Override
@@ -145,7 +141,7 @@ public class RequestFilter extends ZuulFilter {
 
             try {
                 executePost(ctx, request, body, offset);
-            } catch (GeneralSecurityException | UnsupportedEncodingException e) {
+            } catch (GeneralSecurityException | UnsupportedEncodingException | IllegalArgumentException e) {
                 e.printStackTrace();
                 logger.error("POST body 解密错误：{}", e.getMessage());
                 ctx.setSendZuulResponse(false);
@@ -194,9 +190,12 @@ public class RequestFilter extends ZuulFilter {
         }
         Map<String, List<String>> finalRequestQueryParams = requestQueryParams;
         requestQueryParams.forEach((k, v) -> {
+            logger.info("解码前 k ：{}", k);
+            logger.info("解码前 v ：{}", v);
             List<String> arrayList = new ArrayList<>();
             v.forEach(s -> {
-                String aes_decodedStr = null;
+                logger.info("解码前 s ：{}", s);
+                String aes_decodedStr;
                 try {
                     aes_decodedStr = AESUtil.decrypt(s, Constants.KEY, offset);
                 } catch (GeneralSecurityException | UnsupportedEncodingException e) {
@@ -223,6 +222,7 @@ public class RequestFilter extends ZuulFilter {
             return;
         }
         String newBody = AESUtil.decrypt(body, Constants.KEY, offset);
+        logger.info("解密后请求参数{}", newBody);
         final byte[] reqBodyBytes = newBody.getBytes();
 
         // 重写上下文的HttpServletRequestWrapper
