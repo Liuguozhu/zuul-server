@@ -6,14 +6,12 @@ import com.netflix.zuul.context.RequestContext;
 import com.netflix.zuul.exception.ZuulException;
 import com.netflix.zuul.http.HttpServletRequestWrapper;
 import com.netflix.zuul.http.ServletInputStreamWrapper;
-import com.ophyer.zuul.common.AESUtil;
-import com.ophyer.zuul.common.Constants;
-import com.ophyer.zuul.common.IpUtil;
-import com.ophyer.zuul.common.MD5Util;
+import com.ophyer.zuul.common.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
@@ -26,10 +24,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author LGZ
@@ -42,6 +37,9 @@ import java.util.Map;
 public class RequestFilter extends ZuulFilter {
 
     private static Logger logger = LoggerFactory.getLogger(RequestFilter.class);
+
+    @Value("${zuul.filter}")
+    private String filter;
 
     /**
      * pre：路由之前
@@ -73,7 +71,10 @@ public class RequestFilter extends ZuulFilter {
      */
     @Override
     public boolean shouldFilter() {
-        return false;
+        if (Objects.isNull(filter) || "".equals(filter))
+            return false;
+
+        return Boolean.valueOf(filter);
     }
 
     @Override

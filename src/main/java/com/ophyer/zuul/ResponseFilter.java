@@ -8,21 +8,19 @@ import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.security.spec.InvalidParameterSpecException;
+import java.security.GeneralSecurityException;
+import java.util.Objects;
 
 import static com.netflix.zuul.context.RequestContext.getCurrentContext;
 
@@ -37,6 +35,8 @@ import static com.netflix.zuul.context.RequestContext.getCurrentContext;
 public class ResponseFilter extends ZuulFilter {
 
     private static Logger logger = LoggerFactory.getLogger(ResponseFilter.class);
+    @Value("${zuul.filter}")
+    private String filter;
 
     /**
      * pre：路由之前
@@ -68,7 +68,10 @@ public class ResponseFilter extends ZuulFilter {
      */
     @Override
     public boolean shouldFilter() {
-        return false;
+        if (Objects.isNull(filter) || "".equals(filter))
+            return false;
+
+        return Boolean.valueOf(filter);
     }
 
     @Override

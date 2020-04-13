@@ -1,11 +1,8 @@
-spring:
-  banner:
-    location: file:./banner.txt
 
 eureka:
   instance:
-    instance-id: games    # 这个配置所有eureka client中必须一样！要么不配，要么是同样的 instance-id ！否则，通过 routes 无法找到，也就不能访问
+    instance-id: zuul
     prefer-ip-address: true # 访问路径可以显示 IP
   client:
     serviceUrl:
-      defaultZone: http://127.0.0.1:2200/eureka/
+      defaultZone: http://10.6.0.11:2200/eureka/

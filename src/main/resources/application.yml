@@ -1,5 +1,14 @@
 server:
   port: 2230
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 1000
+    max-connections: 10000
+    accept-count: 2000
+    acceptor-thread-count: 10
+    min-spare-threads: 100
+    max-spare-threads: 500
+    connection-timeout: 10000
 spring:
   # 应用名称
   application:
@@ -11,15 +20,22 @@ spring:
 
 
 zuul:
+  filter: false
   routes:
-    games-lobby:                  #路由名
-      path: /games-lobby/**            #(针对微服务名称的)访问路径
-      serviceId: lobby         #微服务名称
-    upstair:
-      path: /upstair/**      #(针对微服务名称的)访问路径
-      serviceId: upstair         #微服务名称
-      sensitiveHeaders: "*"   #解决session不一致的问题，如果接口中有session验证，加上这个，否则无需添加。
-    lobby-api:
-      path: /lobby-api/**      #(针对微服务名称的)访问路径
-      serviceId: lobby-api         #微服务名称
+#    games-lobby:                  #路由名
+#      path: /games-lobby/**            #(针对微服务名称的)访问路径
+#      serviceId: lobby         #微服务名称
+#    upstair:
+#      path: /upstair/**      #(针对微服务名称的)访问路径
+#      serviceId: upstair         #微服务名称
+#      sensitiveHeaders: "*"   #解决session不一致的问题，如果接口中有session验证，加上这个，否则无需添加。
+#    lobby-api:
+#      path: /lobby-api/**      #(针对微服务名称的)访问路径
+#      serviceId: lobby-api         #微服务名称
+    game-api:
+      path: /green-mood/**      #(针对微服务名称的)访问路径
+      serviceId: green-mood         #微服务名称
+    wechat-util:
+      path: /wechat-service/**      #(针对微服务名称的)访问路径
+      serviceId: wechat-util         #微服务名称
 
