@@ -18,8 +18,38 @@ spring:
   banner:
     location: ["classpath:banner.txt", "file:./banner.txt"]
 
+hystrix:
+  command:
+    default:
+      coreSize: 100
+      maximumSize: 400   #最大线程数量
+      allowMaximumSizeToDivergeFromCoreSize: true   #是否让maximumSize生效，false的话则只有coreSize会生效
+      maxQueueSize: -1 #线程池的队列大小，-1代表使用SynchronousQueue队列。其他值则使用 LinkedBlockingQueue。如果要从-1换成其他值则需重启，即该值不能动态调整，若要动态调整，需要使用到下边这个配置）
+      queueSizeRejectionThreshold: 5 #排队线程数量阈值，默认为5，达到时拒绝，如果配置了该选项，队列的大小是该队列）如果maxQueueSize=-1的话，则该选项不起作用
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 24000 #超时时间根据自己项目需要设置
+# Ribbon 总时间ribbonTimeout = ( ribbonReadTimeout+ ribbonConnectTimeout) * (maxAutoRetries + 1) * (maxAutoRetriesNextServer + 1);
+ribbon:
+  ReadTimeout: 3000 #服务请求处理超时时间（毫秒）
+  ConnectTimeout: 3000 #服务请求连接超时时间（毫秒）
+  OkToRetryOnAllOperations: true #对超时请求启用重试机制
+  MaxAutoRetriesNextServer: 1 #切换重试实例的最大个数
+  MaxAutoRetries: 1 # 切换实例后重试最大次数
+  NFLoadBalancerRuleClassName: com.netflix.loadbalancer.BestAvailableRule #修改负载均衡算法
+
+#  com.netflix.loadbalancer.RandomRule：从提供服务的实例中以随机的方式；
+#  com.netflix.loadbalancer.RoundRobinRule：以线性轮询的方式，就是维护一个计数器，从提供服务的实例中按顺序选取，第一次选第一个，第二次选第二个，以此类推，到最后一个以后再从头来过；
+#  com.netflix.loadbalancer.RetryRule：在RoundRobinRule的基础上添加重试机制，即在指定的重试时间内，反复使用线性轮询策略来选择可用实例；
+#  com.netflix.loadbalancer.WeightedResponseTimeRule：对RoundRobinRule的扩展，响应速度越快的实例选择权重越大，越容易被选择；
+#  com.netflix.loadbalancer.BestAvailableRule：选择并发较小的实例；
+#  com.netflix.loadbalancer.AvailabilityFilteringRule：先过滤掉故障实例，再选择并发较小的实例；
+#  com.netflix.loadbalancer.ZoneAwareLoadBalancer：采用双重过滤，同时过滤不是同一区域的实例和故障实例，选择并发较小的实例。
 
 zuul:
+  semaphore:
+    max-semaphores: 6000 #zuul信号量大小
   filter: false
   routes:
 #    games-lobby:                  #路由名
@@ -35,7 +65,4 @@ zuul:
     game-api:
       path: /green-mood/**      #(针对微服务名称的)访问路径
       serviceId: green-mood         #微服务名称
-    wechat-util:
-      path: /wechat-service/**      #(针对微服务名称的)访问路径
-      serviceId: wechat-util         #微服务名称
 
