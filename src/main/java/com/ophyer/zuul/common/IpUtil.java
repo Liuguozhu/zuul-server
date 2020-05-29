@@ -37,10 +37,7 @@ public class IpUtil {
             logger.info("RemoteAddr:[{}]", ip);
         }
         String realIp = request.getHeader("X-Real-IP");
-        if (!ip.equals(realIp)) {
-            logger.info("X-Real-IP:[{}]", realIp);
-            ip = "";
-        }
+        logger.info("X-Real-IP:[{}]", realIp);
         /**
          * 这些请求头都不是http协议里的标准请求头，也就是说这个是各个代理服务器自己规定的表示客户端地址的请求头。如果哪天有一个代理服务器软件用oooo-client-ip这个请求头代表客户端请求，那上面的代码就不行了。
          *

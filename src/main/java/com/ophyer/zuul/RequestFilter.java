@@ -96,13 +96,24 @@ public class RequestFilter extends ZuulFilter {
             return null;
         }
         String clientIpArray[] = clientIp.split(",");
-        if (clientIpArray.length != 1){
+        if (clientIpArray.length != 1) {
             logger.info("多个请求IP，拒绝转发！");
             ctx.setSendZuulResponse(false);
             ctx.setResponseStatusCode(HttpStatus.SC_FORBIDDEN);
             ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
             return null;
         }
+
+        String agent = request.getHeader("User-Agent");
+        logger.info("请求来源:{}", agent);
+        if (agent.indexOf("micromessenger") <= 0 && agent.indexOf("MicroMessenger") <= 0) {//是否来自微信
+            logger.info("请求不是来自微信，拒绝转发！");
+            ctx.setSendZuulResponse(false);
+            ctx.setResponseStatusCode(HttpStatus.SC_FORBIDDEN);
+            ctx.setResponseBody("{\"code\":403,\"result\":\"access denied!\"}");
+            return null;
+        }
+
 
         //判断是否是预检请求
         if ("OPTIONS".equals(request.getMethod())) {//这里通过判断请求的方法，判断此次是否是预检请求，如果是，立即返回一个204状态吗，标示，允许跨域；预检后，正式请求，这个方法参数就是我们设置的post了
